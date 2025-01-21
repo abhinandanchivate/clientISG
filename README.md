@@ -1,59 +1,39 @@
-# Client
+Webpack Module Federation Setup
+Step 1: Install Dependencies
+Run the following command to install Webpack Module Federation plugin:
+npm install @angular-architects/module-federation --save
+Step 2: Configure Host Application
+Modify the webpack.config.js in the host app to include remote module references:
+const { shareAll, withModuleFederationPlugin } = require('@angular-architects/module-federation/webpack');
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.6.
+module.exports = withModuleFederationPlugin({
+  remotes: {
+    product: "product@http://localhost:4201/remoteEntry.js",
+    cart: "cart@http://localhost:4202/remoteEntry.js"
+  },
+  shared: shareAll({ singleton: true, strictVersion: false, requiredVersion: 'auto' })
+});
+Step 3: Configure Micro Frontend Applications
+Each micro frontend should expose its components by modifying their respective webpack.config.js files:
+Example for Product MFE:
+const { shareAll, withModuleFederationPlugin } = require('@angular-architects/module-federation/webpack');
 
-## Development server
-
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+module.exports = withModuleFederationPlugin({
+  name: 'product',
+  filename: 'remoteEntry.js',
+  exposes: {
+    './ProductModule': './src/app/product/product.module.ts',
+  },
+  shared: shareAll({ singleton: true, strictVersion: false, requiredVersion: 'auto' })
+});
+Step 4: Load Micro Frontend Dynamically
+In the host app routing module, dynamically load MFEs as follows:
+const routes: Routes = [
+  { path: 'product', loadChildren: () => import('product/ProductModule').then(m => m.ProductModule) },
+  { path: 'cart', loadChildren: () => import('cart/CartModule').then(m => m.CartModule) }
+];
+Step 5: Running Applications
+Start the host and MFEs separately:
+ng serve --port 4200  # Host Application
+ng serve --port 4201  # Product Micro Frontend
+ng serve --port 4202  # Cart Micro Frontend
